@@ -293,9 +293,19 @@ namespace Blazor.IndexedDB.Framework
                 // Get generic parameter of list<T> (type T, only supports IndexedSet<T> ergo 1 parameter)
                 var propertyType = table.PropertyType.GetGenericArguments()[0];
 
-                // Get generic records of table
-                Debug.WriteLine($"{nameof(IndexedDb)} - Load table {table.Name}");
-                var records = await this.GetRows(propertyType, table.Name);
+                object records;
+
+                if (table.CustomAttributes.Any(a => a.AttributeType == typeof(SkipDataLoadAttribute)))
+                {
+                    Debug.WriteLine($"{nameof(IndexedDb)} - Skip data load {table.Name}");
+                    records = Activator.CreateInstance(typeof(List<>).MakeGenericType(propertyType));
+                }
+                else
+                {
+                    // Get generic records of table
+                    Debug.WriteLine($"{nameof(IndexedDb)} - Load table {table.Name}");
+                    records = await this.GetRows(propertyType, table.Name);
+                }
 
                 var pkProperty = this.GetPrimaryKey(propertyType, table.Name);
 
@@ -304,6 +314,7 @@ namespace Blazor.IndexedDB.Framework
 
             }
         }
+
 
         private async Task<object> GetRows(Type propertyType, string storeName)
         {
