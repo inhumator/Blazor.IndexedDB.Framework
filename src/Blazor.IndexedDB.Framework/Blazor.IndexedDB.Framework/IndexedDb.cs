@@ -163,6 +163,7 @@ namespace Blazor.IndexedDB.Framework
                     var unique = false;
                     var autoIncrement = false;
                     var foreignKey = false;
+                    var multiEntry = false;
 
                     // Check for settings via attributes here (additonal attributes have to be checked here)
                     if (attributes.Any(x => x.AttributeType == typeof(KeyAttribute)))
@@ -172,6 +173,10 @@ namespace Blazor.IndexedDB.Framework
                     if (attributes.Any(x => x.AttributeType == typeof(UniqueAttribute)))
                     {
                         unique = true;
+                    }
+                    if (attributes.Any(x => x.AttributeType == typeof(MultiEntryAttribute)))
+                    {
+                        multiEntry = true;
                     }
                     if (attributes.Any(x => x.AttributeType == typeof(AutoIncrementAttribute)))
                     {
@@ -189,7 +194,7 @@ namespace Blazor.IndexedDB.Framework
 
                     var columnName = this.FirstToLower(property.Name);
                     // Define index
-                    var index = new IndexSpec { Name = columnName, KeyPath = columnName, Auto = autoIncrement, Unique = unique };
+                    var index = new IndexSpec { Name = columnName, KeyPath = columnName, Auto = autoIncrement, Unique = unique, MultiEntry = multiEntry };
 
                     // Register index
                     if (id)
