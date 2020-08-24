@@ -17,7 +17,7 @@ namespace Blazor.IndexedDB.Framework
     {
         private readonly Task init;
 
-        private IndexedDBManager connector;
+        protected IndexedDBManager Connector { get; }
 
         public IndexedDb(IJSRuntime jSRuntime, string name, int version)
         {
@@ -34,12 +34,12 @@ namespace Blazor.IndexedDB.Framework
             this.Build(dbStore);
 
             Debug.WriteLine($"{nameof(IndexedDb)} - Opening connector");
-            this.connector = new IndexedDBManager(dbStore, jSRuntime);
+            this.Connector = new IndexedDBManager(dbStore, jSRuntime);
 
             Debug.WriteLine($"{nameof(IndexedDb)} - Loading data");
             this.init = this.LoadData();
 
-            this.connector.ActionCompleted += Connector_ActionCompleted;
+            this.Connector.ActionCompleted += Connector_ActionCompleted;
         }
 
         private void Connector_ActionCompleted(object sender, IndexedDBNotificationArgs e)
@@ -277,7 +277,7 @@ namespace Blazor.IndexedDB.Framework
         {
             Debug.WriteLine($"Trying to resolve PK for {rowType.Name} in table {tableName}");
 
-            var storePk = this.connector.Stores.Single(x => x.Name == tableName).PrimaryKey.KeyPath;
+            var storePk = this.Connector.Stores.Single(x => x.Name == tableName).PrimaryKey.KeyPath;
 
             return rowType.GetProperties().Single(x => this.FirstToLower(x.Name) == storePk);
         }
@@ -315,12 +315,11 @@ namespace Blazor.IndexedDB.Framework
             }
         }
 
-
         private async Task<object> GetRows(Type propertyType, string storeName)
         {
-            MethodInfo method = this.connector.GetType().GetMethod(nameof(this.connector.GetRecords));
+            MethodInfo method = this.Connector.GetType().GetMethod(nameof(this.Connector.GetRecords));
             MethodInfo generic = method.MakeGenericMethod(propertyType);
-            var records = await generic.InvokeAsyncWithResult(this.connector, new object[] { storeName });
+            var records = await generic.InvokeAsyncWithResult(this.Connector, new object[] { storeName });
 
             return records;
         }
@@ -336,7 +335,7 @@ namespace Blazor.IndexedDB.Framework
         {
             var pkValue = pkProperty.GetValue(data);
 
-            await this.connector.DeleteRecord<object>(storeName, pkValue);
+            await this.Connector.DeleteRecord<object>(storeName, pkValue);
         }
 
         /// <summary>
@@ -349,7 +348,7 @@ namespace Blazor.IndexedDB.Framework
         {
             var storeRecord = this.ConvertToObjectRecord(storeName, data);
 
-            await this.connector.AddRecord<object>(storeRecord);
+            await this.Connector.AddRecord<object>(storeRecord);
 
             // TODO: OLD GENERIC IMPLEMENTATION / REMOVE
             //Type[] typeArgs = { data.GetType() };
@@ -375,7 +374,7 @@ namespace Blazor.IndexedDB.Framework
         {
             var storeRecord = this.ConvertToObjectRecord(storeName, data);
 
-            await this.connector.UpdateRecord<object>(storeRecord);
+            await this.Connector.UpdateRecord<object>(storeRecord);
         }
 
         // Only required to save to database, resolve will be = to object properties
