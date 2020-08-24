@@ -8,6 +8,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using TG.Blazor.IndexedDB;
 
@@ -148,6 +149,8 @@ namespace Blazor.IndexedDB.Framework
                 // Get all properties of the generic type T
                 var properties = propertyType.GetProperties();
 
+                Dictionary<string, List<string>> compoundIndices = new Dictionary<string, List<string>>();
+
                 foreach (var property in properties)
                 {
                     // If any non supported object is used throw exception here
@@ -193,6 +196,21 @@ namespace Blazor.IndexedDB.Framework
                     }
 
                     var columnName = this.FirstToLower(property.Name);
+
+                    foreach(var attributeData in attributes.Where(x => x.AttributeType == typeof(CompoundIndexAttribute)))
+                    //foreach (var attribute in attributes.OfType<CompoundIndexAttribute>())
+                    {
+                        var name = attributeData.ConstructorArguments[0].Value as string;
+                        name = this.FirstToLower(name);
+                        compoundIndices.TryGetValue(name, out var list);
+                        if(list == null)
+                            list = new List<string>();
+                        list.Add(columnName);
+                        compoundIndices[name] = list;
+                        Debug.WriteLine($"{nameof(IndexedDb)} -Compound key detected: {name}:{columnName}={string.Join(",",list)}");
+                    }
+
+                    
                     // Define index
                     var index = new IndexSpec { Name = columnName, KeyPath = columnName, Auto = autoIncrement, Unique = unique, MultiEntry = multiEntry };
 
@@ -216,6 +234,13 @@ namespace Blazor.IndexedDB.Framework
 
                         schema.Indexes.Add(index);
                     }
+                }
+
+                foreach(var compound in compoundIndices)
+                {
+                    Debug.WriteLine($"{nameof(IndexedDb)} -Compound key queued: {compound.Key} : {string.Join(",", compound.Value)}");
+                    var index = new IndexSpec { Name = compound.Key, KeyPaths = compound.Value.ToArray(), Compound = true  /*Unique = unique, MultiEntry = multiEntry*/ };
+                    schema.Indexes.Add(index);
                 }
 
                 // Create PK when not defined
