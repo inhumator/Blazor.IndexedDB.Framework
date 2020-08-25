@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Runtime;
 
 namespace Blazor.IndexedDB.Framework
 {
@@ -58,6 +59,27 @@ namespace Blazor.IndexedDB.Framework
                 {
                     State = EntityState.Added
                 });
+            }
+        }
+
+        public void CommitChanges()
+        {
+            for(int i=0; i<internalItems.Count;)
+            {
+                var item = internalItems[i];
+                switch(item.State)
+                {
+                    case EntityState.Deleted:
+                    case EntityState.Detached:
+                        internalItems.RemoveAt(i);
+                        break;
+                    //case EntityState.Added:
+                    //case EntityState.Modified:
+                    default:
+                        item.State = EntityState.Unchanged;
+                        i++;
+                        break;
+                }
             }
         }
 
